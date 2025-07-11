@@ -1,16 +1,71 @@
 on: push
 name: Curl Proxy
 jobs:
-    trigger_proxy:
-        uses: ./.github/workflows/start_proxy.yml
-    curl_proxy:
+    test_proxy:
         runs-on: ubuntu-latest
-        needs: trigger_proxy
         steps:
         - name: Checkout code
-          uses: actions/checkout@v2
-    
+          uses: actions/checkout@v4
+        
+        - name: Set up Python
+          uses: actions/setup-python@v4
+          with:
+            python-version: '3.x'
+        
+        - name: Install dependencies
+          run: |
+            cd proxy_mock
+            pip install -r requirements.txt
+        
+        - name: Start Proxy Server in Background
+          run: |
+            cd proxy_mock
+            python proxyserver.py &
+            PROXY_PID=$!
+            echo $PROXY_PID > proxy_pid.txt
+            echo "Proxy server started with PID: $PROXY_PID"
+        
+        - name: Wait for server to start and verify
+          run: |
+            echo "Waiting for proxy server to start..."
+            sleep 10
+            # Check if the process is still running
+            if [ -f proxy_mock/proxy_pid.txt ]; then
+              PID=$(cat proxy_mock/proxy_pid.txt)
+              if ps -p $PID > /dev/null; then
+                echo "Proxy server is running with PID: $PID"
+              else
+                echo "Proxy server failed to start"
+                exit 1
+              fi
+            else
+              echo "PID file not found"
+              exit 1
+            fi
+        
         - name: Test Proxy with Curl
           run: |
-            sleep 5  # Wait for the server to start
-            curl http://127.0.0.1:8080/  # Replace with your test endpoint
+            echo "Testing proxy server connection..."
+            # Test basic connectivity first
+            curl -v --connect-timeout 10 --max-time 30 http://127.0.0.1:8080/ || (echo "Proxy server test failed" && exit 1)
+            echo "Proxy server test passed!"
+        
+        - name: Stop Proxy Server
+          if: always()
+          run: |
+            echo "Stopping proxy server..."
+            if [ -f proxy_mock/proxy_pid.txt ]; then
+              PID=$(cat proxy_mock/proxy_pid.txt)
+              echo "Stopping proxy server with PID: $PID"
+              kill $PID || true
+              # Give it a moment to stop gracefully
+              sleep 2
+              # Force kill if still running
+              kill -9 $PID 2>/dev/null || true
+              rm -f proxy_mock/proxy_pid.txt
+              echo "Proxy server stopped"
+            else
+              echo "PID file not found, proxy may not be running"
+            fi
+            # Also kill any remaining proxy processes
+            pkill -f "proxy.*--hostname.*127.0.0.1.*--port.*8080" || true
