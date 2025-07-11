@@ -1,0 +1,17 @@
+on:
+  workflow_call:
+
+jobs:
+    start_proxy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v2
+            - name: Start Proxy
+              run: |
+                cd proxy_mock
+                pip install virtualenv
+                virtualenv venv
+                source venv/bin/activate
+                pip install -r requirements.txt
+                python proxyserver.py
