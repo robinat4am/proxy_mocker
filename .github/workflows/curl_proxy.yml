@@ -50,6 +50,13 @@ jobs:
             curl -v --connect-timeout 10 --max-time 30 http://127.0.0.1:8080/ || (echo "Proxy server test failed" && exit 1)
             echo "Proxy server test passed!"
         
+        - name: Test with qa web dev env
+          run: |
+            echo "Testing qa web dev server connection..."
+            # Test basic connectivity first
+            curl -v --connect-timeout 10 --max-time 30 https://agentsapi-dev-qaweb.healthcare.barco.com/ || (echo "qa web dev server test failed" && exit 1)
+            echo "qa web dev server test passed!"
+                
         - name: Stop Proxy Server
           if: always()
           run: |
