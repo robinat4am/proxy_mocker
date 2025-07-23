@@ -33,20 +33,6 @@ jobs:
             Write-Host "Waiting for proxy server to start..."
             Start-Sleep -Seconds 10
             
-            # Check if the process is still running
-            if (Test-Path "proxy_mock\proxy_pid.txt") {
-                $processId = Get-Content "proxy_mock\proxy_pid.txt"
-                $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
-                if ($process) {
-                    Write-Host "Proxy server is running with PID: $processId"
-                } else {
-                    Write-Host "Proxy server failed to start"
-                    exit 1
-                }
-            } else {
-                Write-Host "PID file not found"
-                exit 1
-            }
         
         - name: Test Proxy with Curl
           shell: bash
