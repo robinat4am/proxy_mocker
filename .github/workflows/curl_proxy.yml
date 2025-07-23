@@ -35,10 +35,10 @@ jobs:
             
             # Check if the process is still running
             if (Test-Path "proxy_mock\proxy_pid.txt") {
-                $pid = Get-Content "proxy_mock\proxy_pid.txt"
-                $process = Get-Process -Id $pid -ErrorAction SilentlyContinue
+                $processId = Get-Content "proxy_mock\proxy_pid.txt"
+                $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
                 if ($process) {
-                    Write-Host "Proxy server is running with PID: $pid"
+                    Write-Host "Proxy server is running with PID: $processId"
                 } else {
                     Write-Host "Proxy server failed to start"
                     exit 1
@@ -70,13 +70,13 @@ jobs:
           run: |
             Write-Host "Stopping proxy server..."
             if (Test-Path "proxy_mock\proxy_pid.txt") {
-                $pid = Get-Content "proxy_mock\proxy_pid.txt"
-                Write-Host "Stopping proxy server with PID: $pid"
+                $processId = Get-Content "proxy_mock\proxy_pid.txt"
+                Write-Host "Stopping proxy server with PID: $processId"
                 try {
-                    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                    Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
                     Write-Host "Proxy server stopped"
                 } catch {
-                    Write-Host "Failed to stop process with PID: $pid"
+                    Write-Host "Failed to stop process with PID: $processId"
                 }
                 Remove-Item "proxy_mock\proxy_pid.txt" -ErrorAction SilentlyContinue
             } else {
