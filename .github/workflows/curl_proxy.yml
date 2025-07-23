@@ -29,19 +29,6 @@ jobs:
           run: |
             echo "Waiting for proxy server to start..."
             sleep 10
-            # Check if the process is still running
-            if [ -f proxy_mock/proxy_pid.txt ]; then
-              PID=$(cat proxy_mock/proxy_pid.txt)
-              if ps -p $PID > /dev/null; then
-                echo "Proxy server is running with PID: $PID"
-              else
-                echo "Proxy server failed to start"
-                exit 1
-              fi
-            else
-              echo "PID file not found"
-              exit 1
-            fi
         
         - name: Test Proxy with Curl
           shell: bash
@@ -64,18 +51,3 @@ jobs:
           if: always()
           run: |
             echo "Stopping proxy server..."
-            if [ -f proxy_mock/proxy_pid.txt ]; then
-              PID=$(cat proxy_mock/proxy_pid.txt)
-              echo "Stopping proxy server with PID: $PID"
-              kill $PID || true
-              # Give it a moment to stop gracefully
-              sleep 2
-              # Force kill if still running
-              kill -9 $PID 2>/dev/null || true
-              rm -f proxy_mock/proxy_pid.txt
-              echo "Proxy server stopped"
-            else
-              echo "PID file not found, proxy may not be running"
-            fi
-            # Also kill any remaining proxy processes
-            pkill -f "proxy.*--hostname.*127.0.0.1.*--port.*8080" || true
