@@ -2,7 +2,7 @@ on: push
 name: Curl Proxy
 jobs:
     test_proxy:
-        runs-on: ubuntu-latest
+        runs-on: windows-2022
         steps:
         - name: Checkout code
           uses: actions/checkout@v4
@@ -13,19 +13,19 @@ jobs:
             python-version: '3.x'
         
         - name: Install dependencies
+          shell: pwsh
           run: |
             cd proxy_mock
             pip install -r requirements.txt
         
-        - name: Start Proxy Server in Background
+        - name: Start Python script in background
+          shell: pwsh
           run: |
-            cd proxy_mock
-            python proxyserver.py &
-            PROXY_PID=$!
-            echo $PROXY_PID > proxy_pid.txt
-            echo "Proxy server started with PID: $PROXY_PID"
+            Start-Process -NoNewWindow -FilePath "python" -ArgumentList "proxyserver.py"
+            Start-Process -WindowStyle Hidden -FilePath "python" -ArgumentList "proxyserver.py"
         
         - name: Wait for server to start and verify
+          shell: bash
           run: |
             echo "Waiting for proxy server to start..."
             sleep 10
@@ -44,6 +44,7 @@ jobs:
             fi
         
         - name: Test Proxy with Curl
+          shell: bash
           run: |
             echo "Testing proxy server connection..."
             # Test basic connectivity first
@@ -51,6 +52,7 @@ jobs:
             echo "Proxy server test passed!"
         
         - name: Test with qa web dev env
+          shell: bash
           run: |
             echo "Testing qa web dev server connection..."
             # Test basic connectivity first
@@ -58,6 +60,7 @@ jobs:
             echo "qa web dev server test passed!"
                 
         - name: Stop Proxy Server
+          shell: bash
           if: always()
           run: |
             echo "Stopping proxy server..."
