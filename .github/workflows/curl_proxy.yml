@@ -21,14 +21,32 @@ jobs:
         - name: Start Python script in background
           shell: pwsh
           run: |
-            Start-Process -NoNewWindow -FilePath "python" -ArgumentList "proxyserver.py"
-            Start-Process -WindowStyle Hidden -FilePath "python" -ArgumentList "proxyserver.py"
+            cd proxy_mock
+            # Start the proxy server in background and save the process ID
+            $process = Start-Process -NoNewWindow -FilePath "python" -ArgumentList "proxyserver.py" -PassThru -WorkingDirectory "."
+            $process.Id | Out-File -FilePath "proxy_pid.txt" -Encoding ASCII
+            Write-Host "Started proxy server with PID: $($process.Id)"
         
         - name: Wait for server to start and verify
-          shell: bash
+          shell: pwsh
           run: |
-            echo "Waiting for proxy server to start..."
-            sleep 10
+            Write-Host "Waiting for proxy server to start..."
+            Start-Sleep -Seconds 10
+            
+            # Check if the process is still running
+            if (Test-Path "proxy_mock\proxy_pid.txt") {
+                $pid = Get-Content "proxy_mock\proxy_pid.txt"
+                $process = Get-Process -Id $pid -ErrorAction SilentlyContinue
+                if ($process) {
+                    Write-Host "Proxy server is running with PID: $pid"
+                } else {
+                    Write-Host "Proxy server failed to start"
+                    exit 1
+                }
+            } else {
+                Write-Host "PID file not found"
+                exit 1
+            }
         
         - name: Test Proxy with Curl
           shell: bash
@@ -47,7 +65,23 @@ jobs:
             echo "qa web dev server test passed!"
                 
         - name: Stop Proxy Server
-          shell: bash
+          shell: pwsh
           if: always()
           run: |
-            echo "Stopping proxy server..."
+            Write-Host "Stopping proxy server..."
+            if (Test-Path "proxy_mock\proxy_pid.txt") {
+                $pid = Get-Content "proxy_mock\proxy_pid.txt"
+                Write-Host "Stopping proxy server with PID: $pid"
+                try {
+                    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                    Write-Host "Proxy server stopped"
+                } catch {
+                    Write-Host "Failed to stop process with PID: $pid"
+                }
+                Remove-Item "proxy_mock\proxy_pid.txt" -ErrorAction SilentlyContinue
+            } else {
+                Write-Host "PID file not found, proxy may not be running"
+            }
+            
+            # Also kill any remaining proxy processes
+            Get-Process | Where-Object {$_.ProcessName -eq "python" -and $_.CommandLine -like "*proxyserver.py*"} | Stop-Process -Force -ErrorAction SilentlyContinue
