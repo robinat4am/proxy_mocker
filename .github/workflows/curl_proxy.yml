@@ -47,24 +47,3 @@ jobs:
             curl -v --connect-timeout 10 --max-time 30 https://agentsapi-dev-qaweb.healthcare.barco.com/ || (echo "qa web dev server test failed" && exit 1)
             echo "qa web dev server test passed!"
                 
-        - name: Stop Proxy Server
-          shell: pwsh
-          if: always()
-          run: |
-            Write-Host "Stopping proxy server..."
-            if (Test-Path "proxy_mock\proxy_pid.txt") {
-                $processId = Get-Content "proxy_mock\proxy_pid.txt"
-                Write-Host "Stopping proxy server with PID: $processId"
-                try {
-                    Stop-Process -Id $processId -Force -ErrorAction SilentlyContinue
-                    Write-Host "Proxy server stopped"
-                } catch {
-                    Write-Host "Failed to stop process with PID: $processId"
-                }
-                Remove-Item "proxy_mock\proxy_pid.txt" -ErrorAction SilentlyContinue
-            } else {
-                Write-Host "PID file not found, proxy may not be running"
-            }
-            
-            # Also kill any remaining proxy processes
-            Get-Process | Where-Object {$_.ProcessName -eq "python" -and $_.CommandLine -like "*proxyserver.py*"} | Stop-Process -Force -ErrorAction SilentlyContinue
